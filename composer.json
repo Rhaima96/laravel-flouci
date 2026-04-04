@@ -1,0 +1,72 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "rhaima/laravel-flouci",
+    "description": "Laravel package for integrating Flouci payments in Tunisia.",
+    "type": "library",
+    "keywords": [
+        "flouci",
+        "laravel",
+        "payments",
+        "tunisia"
+    ],
+    "homepage": "https://github.com/Rhaima96/laravel-flouci",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Mohamed Touhami Rhaima",
+            "homepage": "https://github.com/Rhaima96",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/Rhaima96/laravel-flouci/issues",
+        "source": "https://github.com/Rhaima96/laravel-flouci",
+        "docs": "https://github.com/Rhaima96/laravel-flouci#readme"
+    },
+    "require": {
+        "php": "^8.2",
+        "illuminate/http": "^11.0|^12.0|^13.0",
+        "illuminate/support": "^11.0|^12.0|^13.0"
+    },
+    "require-dev": {
+        "mockery/mockery": "^1.6",
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
+        "pestphp/pest": "^3.0|^4.0",
+        "pestphp/pest-plugin-laravel": "^3.0|^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Flouci\\Laravel\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/",
+            "Workbench\\App\\": "workbench/app/"
+        }
+    },
+    "scripts": {
+        "test": [
+            "@php vendor/bin/pest"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Flouci\\Laravel\\FlouciServiceProvider"
+            ],
+            "aliases": {
+                "Flouci": "Flouci\\Laravel\\Facades\\Flouci"
+            }
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
