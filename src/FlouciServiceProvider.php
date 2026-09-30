@@ -2,6 +2,9 @@
 
 namespace Flouci\Laravel;
 
+use Flouci\Laravel\Http\Controllers\WebhookController;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
+use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 
 class FlouciServiceProvider extends ServiceProvider
@@ -31,5 +34,12 @@ class FlouciServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../config/flouci.php' => config_path('flouci.php'),
         ], 'flouci-config');
+
+        Router::macro('flouciWebhook', function (string $uri = 'flouci/webhook') {
+            /** @var Router $this */
+            return $this->post($uri, WebhookController::class)
+                ->withoutMiddleware([ValidateCsrfToken::class])
+                ->name('flouci.webhook');
+        });
     }
 }

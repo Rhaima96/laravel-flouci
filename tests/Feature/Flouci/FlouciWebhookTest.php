@@ -1,51 +1,93 @@
 <?php
 
+use Flouci\Laravel\Events\PaymentEvent;
+use Flouci\Laravel\Events\PaymentExpired;
+use Flouci\Laravel\Events\PaymentFailed;
+use Flouci\Laravel\Events\PaymentSucceeded;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Http\Client\Request as HttpRequest;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 
 beforeEach(function () {
-    config()->set('flouci.public_key', 'public_test_key');
-    config()->set('flouci.private_key', 'private_test_key');
-    config()->set('flouci.base_url', 'https://developers.flouci.com/api');
+    Event::fake();
 });
 
-it('accepts a flouci webhook and verifies the payment', function () {
-    Log::spy();
+function fakeVerification(string $status): void
+{
+    Http::fake(['*' => Http::response(['result' => [
+        'status' => $status,
+        'amount' => 1250,
+        'developer_tracking_id' => 'order_1002',
+    ]])]);
+}
 
-    Http::fake([
-        'developers.flouci.com/api/v2/verify_payment/webhook_4242' => Http::response([
-            'result' => [
-                'status' => 'SUCCESS',
-                'developer_tracking_id' => 'order_1002',
-            ],
-        ]),
-    ]);
+it('verifies the payment and dispatches PaymentSucceeded', function () {
+    fakeVerification('SUCCESS');
 
-    $this->postJson(route('flouci.webhook'), [
-        'payment_id' => 'webhook_4242',
-        'status' => 'success',
-    ])
+    $this->postJson(route('flouci.webhook'), ['payment_id' => 'pay_42', 'status' => 'FAILURE'])
         ->assertOk()
-        ->assertJsonPath('received', true)
-        ->assertJsonPath('verified', true)
-        ->assertJsonPath('payment_id', 'webhook_4242')
-        ->assertJsonPath('verification.result.status', 'SUCCESS');
+        ->assertExactJson(['received' => true, 'status' => 'SUCCESS']);
 
-    Http::assertSent(fn (HttpRequest $request) => $request->url() === 'https://developers.flouci.com/api/v2/verify_payment/webhook_4242');
+    Http::assertSent(fn (HttpRequest $request) => str_ends_with($request->url(), '/v2/verify_payment/pay_42'));
+
+    Event::assertDispatched(PaymentSucceeded::class, fn (PaymentSucceeded $event) => $event->paymentId === 'pay_42'
+        && $event->trackingId() === 'order_1002'
+        && $event->amount() === 1250);
 });
 
-it('accepts a webhook without payment id and returns a clear error', function () {
-    Log::spy();
+it('maps failed and expired statuses to their events', function (string $status, string $event) {
+    fakeVerification($status);
 
-    $this->postJson(route('flouci.webhook'), [
-        'status' => 'failure',
-    ])
+    $this->postJson(route('flouci.webhook'), ['payment_id' => 'pay_'.$status])->assertOk();
+
+    Event::assertDispatched($event);
+})->with([
+    ['FAILURE', PaymentFailed::class],
+    ['SYSTEM_FAILURE', PaymentFailed::class],
+    ['EXPIRED', PaymentExpired::class],
+]);
+
+it('dispatches nothing for a pending payment', function () {
+    fakeVerification('PENDING');
+
+    $this->postJson(route('flouci.webhook'), ['payment_id' => 'pay_pending'])
         ->assertOk()
-        ->assertJsonPath('received', true)
-        ->assertJsonPath('verified', false)
-        ->assertJsonPath('payment_id', null)
-        ->assertJsonPath('error', 'No payment identifier was found in webhook payload.');
+        ->assertJsonPath('status', 'PENDING');
+
+    Event::assertNotDispatched(PaymentEvent::class);
+});
+
+it('dispatches only once when the same webhook is replayed', function () {
+    fakeVerification('SUCCESS');
+
+    $this->postJson(route('flouci.webhook'), ['payment_id' => 'pay_dup'])->assertOk();
+    $this->postJson(route('flouci.webhook'), ['payment_id' => 'pay_dup'])->assertOk();
+
+    Event::assertDispatchedTimes(PaymentSucceeded::class, 1);
+});
+
+it('rejects a webhook without payment id', function () {
+    Http::fake();
+
+    $this->postJson(route('flouci.webhook'), ['status' => 'SUCCESS'])
+        ->assertUnprocessable()
+        ->assertJsonPath('received', false);
 
     Http::assertNothingSent();
+    Event::assertNotDispatched(PaymentEvent::class);
+});
+
+it('returns a server error when verification fails so the call can be retried', function () {
+    Http::fake(['*' => Http::response('down', 503)]);
+
+    $this->postJson(route('flouci.webhook'), ['payment_id' => 'pay_down'])->assertServerError();
+
+    Event::assertNotDispatched(PaymentEvent::class);
+});
+
+it('registers the webhook route without CSRF protection', function () {
+    expect(Route::getRoutes()->getByName('flouci.webhook')->excludedMiddleware())
+        ->toContain(ValidateCsrfToken::class);
 });

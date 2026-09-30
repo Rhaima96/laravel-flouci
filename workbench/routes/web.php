@@ -1,9 +1,7 @@
 <?php
 
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Route;
 use Workbench\App\Http\Controllers\FlouciSandboxController;
-use Workbench\App\Http\Controllers\FlouciWebhookController;
 
 Route::prefix('flouci/sandbox')->name('flouci.sandbox.')->group(function () {
     Route::get('/', [FlouciSandboxController::class, 'index'])->name('index');
@@ -12,6 +10,4 @@ Route::prefix('flouci/sandbox')->name('flouci.sandbox.')->group(function () {
     Route::get('/fail', [FlouciSandboxController::class, 'fail'])->name('fail');
 });
 
-Route::post('/flouci/webhook', FlouciWebhookController::class)
-    ->withoutMiddleware([VerifyCsrfToken::class])
-    ->name('flouci.webhook');
+Route::flouciWebhook();

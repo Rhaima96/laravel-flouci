@@ -4,6 +4,17 @@ All notable changes to `rhaima/laravel-flouci` will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [1.3.0] - 2026-09-30
+
+### Added
+- `Route::flouciWebhook()` macro registering a CSRF-free webhook endpoint
+- Webhook controller that verifies the payment through the API and dispatches
+  `PaymentSucceeded`, `PaymentFailed` or `PaymentExpired` (all extending `PaymentEvent`)
+- Replayed webhooks dispatch their event only once (24h cache key)
+
+### Removed
+- Workbench-only webhook example controller, replaced by the shipped one
+
 ## [1.2.0] - 2026-09-30
 
 ### Added

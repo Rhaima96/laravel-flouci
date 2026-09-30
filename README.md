@@ -103,6 +103,51 @@ $payment = Flouci::generatePayment([
 
 Le montant `amount` est exprime en **millimes** (`10000` = 10 TND).
 
+## Webhook
+
+Enregistrer la route (dans `routes/web.php` ou `routes/api.php`, la protection CSRF est retiree automatiquement):
+
+```php
+Route::flouciWebhook();                        // POST /flouci/webhook, nommee flouci.webhook
+Route::flouciWebhook('payments/flouci/hook');  // URI personnalisee
+Route::flouciWebhook()->middleware('throttle:60,1');
+```
+
+Puis pointer `FLOUCI_WEBHOOK_URL` vers cette URL (ou passer `webhook` a `generatePayment()`).
+
+Flouci ne signe pas ses webhooks: le package ne fait confiance qu'au `payment_id` recu, et lit toujours
+le statut via `verifyPayment()`. Il declenche ensuite un event:
+
+| Statut Flouci | Event |
+|---|---|
+| `SUCCESS` | `Flouci\Laravel\Events\PaymentSucceeded` |
+| `FAILURE`, `SYSTEM_FAILURE` | `Flouci\Laravel\Events\PaymentFailed` |
+| `EXPIRED` | `Flouci\Laravel\Events\PaymentExpired` |
+| `PENDING`, `PREAUTH_SUCCESS` | aucun |
+
+```php
+use Flouci\Laravel\Events\PaymentSucceeded;
+
+Event::listen(function (PaymentSucceeded $event) {
+    $order = Order::where('reference', $event->trackingId())->firstOrFail();
+
+    if ($order->amount_millimes !== $event->amount()) {
+        return; // montant inattendu: ne pas valider la commande
+    }
+
+    $order->markAsPaid($event->paymentId);
+});
+```
+
+Chaque event expose `paymentId`, `status` (`PaymentStatus`), `verification` (reponse brute), `trackingId()` et `amount()`.
+Toutes ces classes heritent de `PaymentEvent` pour ecouter tous les cas d'un coup.
+
+A savoir:
+- Un meme webhook rejoue ne declenche l'event qu'une fois (cle en cache pendant 24h). Utilise un store de cache
+  partage (redis, database) en production, et garde un controle d'idempotence cote commande.
+- Si l'API Flouci est injoignable pendant la verification, la route repond en 5xx.
+- Sans `payment_id` dans le payload, la route repond `422`.
+
 ## Gestion des erreurs
 
 Toute erreur (reponse HTTP en echec, timeout, reponse illisible) leve une `FlouciException`:
@@ -125,7 +170,7 @@ Le depot contient maintenant:
 - `src/` pour le code publiable du package
 - `config/` pour la configuration publiee
 - `tests/` pour les tests package-first avec Pest + Testbench
-- `workbench/` pour les essais locaux (routes sandbox et webhook d'exemple)
+- `workbench/` pour les essais locaux (page sandbox)
 
 Lancer les tests:
 
