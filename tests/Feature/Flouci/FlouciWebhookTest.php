@@ -6,6 +6,7 @@ use Flouci\Laravel\Events\PaymentFailed;
 use Flouci\Laravel\Events\PaymentSucceeded;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Http\Client\Request as HttpRequest;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
@@ -87,7 +88,16 @@ it('returns a server error when verification fails so the call can be retried', 
     Event::assertNotDispatched(PaymentEvent::class);
 });
 
-it('registers the webhook route without CSRF protection', function () {
-    expect(Route::getRoutes()->getByName('flouci.webhook')->excludedMiddleware())
-        ->toContain(ValidateCsrfToken::class);
+it('strips CSRF protection from the webhook route', function () {
+    // Laravel 12 puts ValidateCsrfToken in the web group, Laravel 13 puts PreventRequestForgery.
+    $csrf = array_values(array_filter([
+        ValidateCsrfToken::class,
+        'Illuminate\\Foundation\\Http\\Middleware\\PreventRequestForgery',
+    ], 'class_exists'));
+
+    app('router')->middlewareGroup('csrf-test', [StartSession::class, ...$csrf]);
+    Route::middleware('csrf-test')->group(fn () => Route::flouciWebhook('csrf-test/flouci/webhook'));
+    $route = collect(Route::getRoutes()->getRoutes())->first(fn ($route) => $route->uri() === 'csrf-test/flouci/webhook');
+
+    expect(app('router')->gatherRouteMiddleware($route))->toBe([StartSession::class]);
 });

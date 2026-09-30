@@ -1,0 +1,9 @@
+providers:
+  - Flouci\Laravel\FlouciServiceProvider
+  - Workbench\App\Providers\WorkbenchServiceProvider
+
+workbench:
+  start: /flouci/sandbox
+  discovers:
+    web: true
+    views: true

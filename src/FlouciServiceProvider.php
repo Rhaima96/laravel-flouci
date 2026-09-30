@@ -3,6 +3,7 @@
 namespace Flouci\Laravel;
 
 use Flouci\Laravel\Http\Controllers\WebhookController;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
@@ -39,7 +40,8 @@ class FlouciServiceProvider extends ServiceProvider
         Router::macro('flouciWebhook', function (string $uri = 'flouci/webhook') {
             /** @var Router $this */
             return $this->post($uri, WebhookController::class)
-                ->withoutMiddleware([ValidateCsrfToken::class])
+                // Laravel 13 renamed the web CSRF middleware to PreventRequestForgery (ValidateCsrfToken now extends it).
+                ->withoutMiddleware([ValidateCsrfToken::class, PreventRequestForgery::class])
                 ->name('flouci.webhook');
         });
     }

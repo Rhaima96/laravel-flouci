@@ -4,6 +4,16 @@ All notable changes to `rhaima/laravel-flouci` will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [1.4.1] - 2026-09-30
+
+### Fixed
+- `Route::flouciWebhook()` returned 419 on Laravel 13: the web group now uses `PreventRequestForgery`,
+  which is also excluded from the webhook route
+
+### Added (development only)
+- `testbench.yaml` and `.env.example` to run the workbench sandbox with `vendor/bin/testbench serve`
+- Workbench logs the raw webhook request and dispatched payment events
+
 ## [1.4.0] - 2026-09-30
 
 ### Added

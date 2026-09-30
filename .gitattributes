@@ -14,3 +14,4 @@
 /phpunit.xml export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
+/testbench.yaml export-ignore
