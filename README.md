@@ -9,7 +9,6 @@
 
 ## Compatibilite
 
-- Laravel 11
 - Laravel 12
 - Laravel 13
 - PHP 8.2+

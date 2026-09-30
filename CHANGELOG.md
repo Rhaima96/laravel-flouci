@@ -4,6 +4,14 @@ All notable changes to `rhaima/laravel-flouci` will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [1.1.0] - 2026-09-30
+
+### Removed
+- Laravel 11 support: it is end-of-life and every 11.x release has unpatched security advisories. Composer keeps Laravel 11 apps on 1.0.x automatically.
+
+### Changed
+- CI matrix: PHP 8.2 / Laravel 12, PHP 8.3 and 8.4 / Laravel 13
+
 ## [1.0.1] - 2026-09-30
 
 ### Added
