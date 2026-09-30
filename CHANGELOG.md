@@ -4,7 +4,12 @@ All notable changes to `rhaima/laravel-flouci` will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
-## [Unreleased]
+## [1.5.0] - 2026-09-30
+
+### Added
+- Laravel Boost AI guideline (`resources/boost/guidelines/core.blade.php`) and `flouci-payments` skill,
+  loaded by `php artisan boost:install`
+- `AGENTS.md` for contributors' coding agents
 
 ### Changed
 - README rewritten in English

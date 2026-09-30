@@ -186,6 +186,13 @@ Http::fake([
 
 Test cards for the Flouci sandbox are listed in the [Flouci docs](https://docs.flouci.com/essentials/testing).
 
+## AI agents
+
+The package ships a [Laravel Boost](https://laravel.com/docs/boost) guideline and a `flouci-payments` skill, so
+coding agents (Claude Code, Cursor, Codex...) learn how to integrate Flouci correctly. Run
+`php artisan boost:install` (or `boost:update --discover` if Boost is already installed) after requiring the
+package.
+
 ## Contributing
 
 ```bash
