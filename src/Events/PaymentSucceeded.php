@@ -2,6 +2,4 @@
 
 namespace Flouci\Laravel\Events;
 
-class PaymentSucceeded extends PaymentEvent
-{
-}
+class PaymentSucceeded extends PaymentEvent {}

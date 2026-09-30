@@ -4,6 +4,7 @@ use Flouci\Laravel\Events\FlouciPaymentEvent;
 use Flouci\Laravel\Events\PaymentExpired;
 use Flouci\Laravel\Events\PaymentFailed;
 use Flouci\Laravel\Events\PaymentSucceeded;
+use Illuminate\Events\Dispatcher;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Session\Middleware\StartSession;
@@ -115,7 +116,7 @@ it('strips CSRF protection from the webhook route', function () {
 });
 
 it('lets a single listener receive every payment event through the interface', function () {
-    Event::swap(new Illuminate\Events\Dispatcher(app()));
+    Event::swap(new Dispatcher(app()));
     $received = [];
     Event::listen(function (FlouciPaymentEvent $event) use (&$received) {
         $received[] = $event::class;

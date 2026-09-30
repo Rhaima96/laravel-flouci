@@ -6,12 +6,12 @@ use Flouci\Laravel\FlouciClient;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @method static array generatePayment(array $payload)
- * @method static array verifyPayment(string|int $paymentId)
- * @method static array refund(string $paymentId)
- * @method static array transactionHistory(array $query = [])
+ * @method static array<string, mixed> generatePayment(array<string, mixed> $payload)
+ * @method static array<string, mixed> verifyPayment(string|int $paymentId)
+ * @method static array<string, mixed> refund(string $paymentId)
+ * @method static array<string, mixed> transactionHistory(array<string, mixed> $query = [])
  *
- * @see \Flouci\Laravel\FlouciClient
+ * @see FlouciClient
  */
 class Flouci extends Facade
 {

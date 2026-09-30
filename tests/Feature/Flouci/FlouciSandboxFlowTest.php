@@ -57,4 +57,3 @@ it('verifies the payment on the success return page', function () {
 
     Http::assertSent(fn (HttpRequest $request) => $request->url() === 'https://developers.flouci.com/api/v2/verify_payment/4242');
 });
-

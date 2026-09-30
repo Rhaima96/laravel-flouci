@@ -23,9 +23,12 @@ class FlouciClient
         protected ?string $webhook = null,
         protected ?int $sessionTimeout = null,
         protected ?int $merchantId = null,
-    ) {
-    }
+    ) {}
 
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
     public function generatePayment(array $payload): array
     {
         $response = $this->request('v2/generate_payment', array_filter([
@@ -40,6 +43,9 @@ class FlouciClient
         return $this->decodeResponse($response, 'payment generation');
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function verifyPayment(string|int $paymentId): array
     {
         $response = $this->request('v2/verify_payment/'.rawurlencode((string) $paymentId), method: 'get');
@@ -47,6 +53,9 @@ class FlouciClient
         return $this->decodeResponse($response, 'payment verification');
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function refund(string $paymentId): array
     {
         $response = $this->request('v2/refund_payment', ['payment_id' => $paymentId]);
@@ -60,6 +69,10 @@ class FlouciClient
         return $decoded;
     }
 
+    /**
+     * @param  array<string, mixed>  $query
+     * @return array<string, mixed>
+     */
     public function transactionHistory(array $query = []): array
     {
         $query += array_filter(['merchant_id' => $this->merchantId]);
@@ -73,6 +86,9 @@ class FlouciClient
         return $this->decodeResponse($response, 'transaction history');
     }
 
+    /**
+     * @param  array<string, mixed>  $payload
+     */
     protected function request(string $uri, array $payload = [], string $method = 'post'): Response
     {
         $this->guardCredentials();
@@ -97,6 +113,9 @@ class FlouciClient
         return $response;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function decodeResponse(Response $response, string $action): array
     {
         $decoded = $response->json();

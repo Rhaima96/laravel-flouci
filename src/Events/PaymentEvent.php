@@ -9,12 +9,14 @@ abstract class PaymentEvent implements FlouciPaymentEvent
 {
     use Dispatchable;
 
+    /**
+     * @param  array<string, mixed>  $verification
+     */
     public function __construct(
         public readonly string $paymentId,
         public readonly PaymentStatus $status,
         public readonly array $verification,
-    ) {
-    }
+    ) {}
 
     public function trackingId(): ?string
     {

@@ -11,6 +11,9 @@ enum PaymentStatus: string
     case PreauthSuccess = 'PREAUTH_SUCCESS';
     case SystemFailure = 'SYSTEM_FAILURE';
 
+    /**
+     * @param  array<string, mixed>  $verification
+     */
     public static function fromVerification(array $verification): ?self
     {
         return self::tryFrom((string) data_get($verification, 'result.status'));

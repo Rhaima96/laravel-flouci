@@ -2,6 +2,7 @@
 
 use Flouci\Laravel\Exceptions\FlouciException;
 use Flouci\Laravel\Facades\Flouci;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -193,7 +194,7 @@ it('exposes the http response on failed requests', function () {
 });
 
 it('wraps connection errors in a FlouciException', function () {
-    Http::fake(fn () => throw new Illuminate\Http\Client\ConnectionException('cURL error 28: timed out'));
+    Http::fake(fn () => throw new ConnectionException('cURL error 28: timed out'));
 
     expect(fn () => Flouci::verifyPayment('abc'))
         ->toThrow(FlouciException::class, 'cURL error 28: timed out');

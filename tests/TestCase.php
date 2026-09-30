@@ -37,4 +37,3 @@ abstract class TestCase extends Orchestra
         require __DIR__.'/../workbench/routes/web.php';
     }
 }
-

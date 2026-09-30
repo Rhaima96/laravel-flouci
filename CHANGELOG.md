@@ -4,6 +4,16 @@ All notable changes to `rhaima/laravel-flouci` will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [Unreleased]
+
+### Changed
+- README rewritten in English
+- Array value types (`array<string, mixed>`) on public methods and facade docblocks
+
+### Added (development only)
+- Pint (`composer lint`) and Larastan level 8 (`composer analyse`), run in CI
+- `SECURITY.md` with private vulnerability reporting
+
 ## [1.4.2] - 2026-09-30
 
 Found by testing against the real Flouci sandbox.

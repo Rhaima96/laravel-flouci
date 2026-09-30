@@ -3,6 +3,7 @@
 namespace Workbench\App\Providers;
 
 use Flouci\Laravel\Events\FlouciPaymentEvent;
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
@@ -14,7 +15,7 @@ class WorkbenchServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Global so the raw call is logged even when no route matches (wrong method, 405).
-        $this->app->make(\Illuminate\Contracts\Http\Kernel::class)->pushMiddleware(LogFlouciWebhook::class);
+        $this->app->make(Kernel::class)->pushMiddleware(LogFlouciWebhook::class);
 
         // Behind an HTTPS tunnel (cloudflared, expose) the app receives plain HTTP.
         if (str_starts_with((string) config('app.url'), 'https://')) {

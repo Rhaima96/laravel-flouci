@@ -5,13 +5,13 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/rhaima/laravel-flouci.svg)](https://packagist.org/packages/rhaima/laravel-flouci)
 [![License](https://img.shields.io/packagist/l/rhaima/laravel-flouci.svg)](https://packagist.org/packages/rhaima/laravel-flouci)
 
-`rhaima/laravel-flouci` est un package Laravel pour integrer Flouci dans des applications tunisiennes.
+Accept [Flouci](https://flouci.com) payments (Tunisia) in Laravel: create payments, verify them, handle the
+webhook with events, refund, and read the transaction history.
 
-## Compatibilite
+## Requirements
 
-- Laravel 12
-- Laravel 13
 - PHP 8.2+
+- Laravel 12 or 13
 
 ## Installation
 
@@ -19,137 +19,95 @@
 composer require rhaima/laravel-flouci
 ```
 
-Le package utilise l'auto-discovery Laravel. Si tu preferes une declaration manuelle, ajoute le provider suivant:
-
-```php
-Flouci\Laravel\FlouciServiceProvider::class,
-```
+The service provider and the `Flouci` facade are auto-discovered.
 
 ## Configuration
 
-Publier la configuration:
+Get your keys from the Flouci dashboard (every developer account has a **TEST APP** for the sandbox), then set:
+
+```env
+FLOUCI_PUBLIC_KEY=
+FLOUCI_PRIVATE_KEY=
+FLOUCI_SUCCESS_LINK="${APP_URL}/payment/success"
+FLOUCI_FAIL_LINK="${APP_URL}/payment/fail"
+FLOUCI_WEBHOOK_URL="${APP_URL}/flouci/webhook"
+```
+
+Optionally publish the config file:
 
 ```bash
 php artisan vendor:publish --tag=flouci-config
 ```
 
-Variables attendues:
+| Option | Env | Default | Description |
+|---|---|---|---|
+| `base_url` | `FLOUCI_BASE_URL` | `https://developers.flouci.com/api` | API base URL |
+| `public_key` | `FLOUCI_PUBLIC_KEY` | | Public key |
+| `private_key` | `FLOUCI_PRIVATE_KEY` | | Private key |
+| `success_link` | `FLOUCI_SUCCESS_LINK` | | Default redirect after a successful payment |
+| `fail_link` | `FLOUCI_FAIL_LINK` | | Default redirect after a failed payment |
+| `webhook` | `FLOUCI_WEBHOOK_URL` | | Default `webhook` sent with each payment |
+| `card_payment` | `FLOUCI_CARD_PAYMENT` | `true` | Default `accept_card` (Flouci's own default is `false`) |
+| `image_url` | `FLOUCI_IMAGE_URL` | | Default image shown on the payment page |
+| `session_timeout` | `FLOUCI_SESSION_TIMEOUT` | Flouci: 1200 | Payment session duration in seconds (`session_timeout_secs`) |
+| `merchant_id` | `FLOUCI_MERCHANT_ID` | | Default `merchant_id` for `transactionHistory()` |
+| `timeout` | `FLOUCI_TIMEOUT` | `15` | HTTP timeout in seconds |
 
-```env
-FLOUCI_BASE_URL=https://developers.flouci.com/api
-FLOUCI_PUBLIC_KEY=
-FLOUCI_PRIVATE_KEY=
-FLOUCI_SUCCESS_LINK=${APP_URL}/payment/success
-FLOUCI_FAIL_LINK=${APP_URL}/payment/fail
-FLOUCI_CARD_PAYMENT=true
-FLOUCI_IMAGE_URL=
-FLOUCI_TIMEOUT=15
-FLOUCI_WEBHOOK_URL=
-FLOUCI_SESSION_TIMEOUT=
-FLOUCI_MERCHANT_ID=
-```
+## Usage
 
-## Options de configuration
-
-- `base_url`: URL de base de l'API Flouci
-- `public_key`: cle publique Flouci
-- `private_key`: cle privee Flouci
-- `success_link`: URL de retour en cas de succes
-- `fail_link`: URL de retour en cas d'echec
-- `card_payment`: valeur par defaut envoyee comme `accept_card` lors de `generatePayment()`
-- `image_url`: URL d'image par defaut envoyee lors de `generatePayment()`
-- `timeout`: timeout HTTP en secondes (defaut: 15)
-- `webhook`: URL de webhook par defaut envoyee lors de `generatePayment()`
-- `session_timeout`: duree de la session de paiement en secondes, envoyee comme `session_timeout_secs` (defaut Flouci: 1200)
-- `merchant_id`: identifiant marchand utilise par defaut par `transactionHistory()`
-
-## Utilisation
+### Create a payment
 
 ```php
 use Flouci\Laravel\Facades\Flouci;
 
 $payment = Flouci::generatePayment([
-    'amount' => 10000,
+    'amount' => 10000,                  // in millimes: 10000 = 10 TND
     'developer_tracking_id' => 'order_1001',
 ]);
 
 return redirect()->away($payment['result']['link']);
 ```
 
-Verifier un paiement (page de retour ou webhook):
+Any Flouci field can be passed per call and overrides the config defaults
+(`success_link`, `fail_link`, `webhook`, `accept_card`, `image_url`, `session_timeout_secs`).
+
+### Verify a payment
+
+Flouci appends `payment_id` to your success and fail links. Always verify it server-side:
 
 ```php
 use Flouci\Laravel\Enums\PaymentStatus;
 
-$verification = Flouci::verifyPayment($paymentId);
+$verification = Flouci::verifyPayment($request->query('payment_id'));
 $status = PaymentStatus::fromVerification($verification);
 
 if ($status?->isPaid()) {
-    // marquer la commande comme payee
+    // mark the order as paid
 }
 ```
 
-`PaymentStatus`: `Success`, `Pending`, `Expired`, `Failure`, `PreauthSuccess`, `SystemFailure`.
-`isFinal()` renvoie `false` pour `Pending` et `PreauthSuccess`.
+`PaymentStatus` cases: `Success`, `Pending`, `Expired`, `Failure`, `PreauthSuccess`, `SystemFailure`.
+`isFinal()` returns `false` for `Pending` and `PreauthSuccess`.
 
-Pour forcer des valeurs sur un appel precis:
+### Webhook
 
-```php
-$payment = Flouci::generatePayment([
-    'amount' => 10000,
-    'developer_tracking_id' => 'order_1002',
-    'accept_card' => false,
-    'image_url' => 'https://example.com/logo.png',
-]);
-```
-
-Le montant `amount` est exprime en **millimes** (`10000` = 10 TND).
-
-## Remboursement
+Register the route (CSRF protection is removed automatically, so `routes/web.php` works):
 
 ```php
-$refund = Flouci::refund($paymentId); // remboursement total
-```
-
-Flouci ne rembourse que les paiements termines et pas encore rembourses. Une erreur de remboursement leve
-toujours une `FlouciException`, meme si Flouci repond en HTTP 200 avec `"status": "error"`.
-
-## Historique des transactions
-
-```php
-$history = Flouci::transactionHistory([
-    'start_date' => '2026-09-01T00:00:00Z', // ISO-8601
-    'end_date' => '2026-09-30T23:59:59Z',
-    'type' => 'online',                     // ou pos
-]);
-```
-
-Les parametres sont transmis tels quels a `GET /api/developers/history`
-([doc](https://docs.flouci.com/api-reference/transaction-history)). `merchant_id` est requis:
-passe-le dans la requete ou via `FLOUCI_MERCHANT_ID`.
-
-## Webhook
-
-Enregistrer la route (dans `routes/web.php` ou `routes/api.php`, la protection CSRF est retiree automatiquement):
-
-```php
-Route::flouciWebhook();                        // GET|POST /flouci/webhook, nommee flouci.webhook
-Route::flouciWebhook('payments/flouci/hook');  // URI personnalisee
+Route::flouciWebhook();                       // GET|POST /flouci/webhook, named flouci.webhook
+Route::flouciWebhook('payments/flouci/hook'); // custom URI
 Route::flouciWebhook()->middleware('throttle:60,1');
 ```
 
-Puis pointer `FLOUCI_WEBHOOK_URL` vers cette URL (ou passer `webhook` a `generatePayment()`).
+Flouci calls it with `GET ?payment_id=...&success=True|False` and does not sign the request. The package
+only trusts the `payment_id`, reads the real status from `verifyPayment()`, then dispatches an event:
 
-Flouci appelle le webhook en `GET ?payment_id=...&success=True|False` (verifie en sandbox), sans signature:
-le package ne fait confiance qu'au `payment_id` recu, et lit toujours le statut via `verifyPayment()`.
-Flouci rappelle le webhook s'il n'obtient pas de reponse 2xx. Le package declenche ensuite un event:
-
-| Statut Flouci | Event |
+| Flouci status | Event |
 |---|---|
 | `SUCCESS` | `Flouci\Laravel\Events\PaymentSucceeded` |
 | `FAILURE`, `SYSTEM_FAILURE` | `Flouci\Laravel\Events\PaymentFailed` |
 | `EXPIRED` | `Flouci\Laravel\Events\PaymentExpired` |
-| `PENDING`, `PREAUTH_SUCCESS` | aucun |
+| `PENDING`, `PREAUTH_SUCCESS` | none |
 
 ```php
 use Flouci\Laravel\Events\PaymentSucceeded;
@@ -158,26 +116,50 @@ Event::listen(function (PaymentSucceeded $event) {
     $order = Order::where('reference', $event->trackingId())->firstOrFail();
 
     if ($order->amount_millimes !== $event->amount()) {
-        return; // montant inattendu: ne pas valider la commande
+        return; // unexpected amount: do not mark the order as paid
     }
 
     $order->markAsPaid($event->paymentId);
 });
 ```
 
-Chaque event expose `paymentId`, `status` (`PaymentStatus`), `verification` (reponse brute), `trackingId()` et `amount()`.
-Pour ecouter tous les cas avec un seul listener, type-hint l'interface `FlouciPaymentEvent`
-(Laravel resout les listeners par interface, pas par classe parente).
+Each event exposes `paymentId`, `status` (`PaymentStatus`), `verification` (raw response), `trackingId()` and
+`amount()`. To handle every case in one listener, type-hint the `FlouciPaymentEvent` interface.
 
-A savoir:
-- Un meme webhook rejoue ne declenche l'event qu'une fois (cle en cache pendant 24h). Utilise un store de cache
-  partage (redis, database) en production, et garde un controle d'idempotence cote commande.
-- Si l'API Flouci est injoignable pendant la verification, la route repond en 5xx.
-- Sans `payment_id` dans le payload, la route repond `422`.
+Good to know:
 
-## Gestion des erreurs
+- Flouci retries the webhook until it gets a 2xx response. A replayed webhook dispatches its event only once
+  (24h cache key): use a shared cache store (Redis, database) in production and keep an idempotency check
+  on your order.
+- If the Flouci API is unreachable during verification, the route answers 5xx so Flouci retries.
+- Without a `payment_id`, the route answers `422`.
 
-Toute erreur (reponse HTTP en echec, timeout, reponse illisible) leve une `FlouciException`:
+### Refund
+
+```php
+$refund = Flouci::refund($paymentId); // full refund
+```
+
+Only completed, not yet refunded payments can be refunded. A refused refund always throws a
+`FlouciException`, even when Flouci answers HTTP 200 with `"status": "error"`.
+
+### Transaction history
+
+```php
+$history = Flouci::transactionHistory([
+    'start_date' => '2026-09-01T00:00:00Z', // ISO-8601 strings
+    'end_date' => '2026-09-30T23:59:59Z',
+    'type' => 'online',                     // or pos
+]);
+```
+
+Parameters are sent as-is to `GET /api/developers/history`
+([docs](https://docs.flouci.com/api-reference/transaction-history)). `merchant_id` is required: pass it in the
+query or set `FLOUCI_MERCHANT_ID`.
+
+### Errors
+
+Every failure (HTTP error, timeout, unreadable response) throws a `FlouciException`:
 
 ```php
 use Flouci\Laravel\Exceptions\FlouciException;
@@ -185,39 +167,48 @@ use Flouci\Laravel\Exceptions\FlouciException;
 try {
     $payment = Flouci::generatePayment(['amount' => 10000]);
 } catch (FlouciException $e) {
-    $e->getCode();                         // statut HTTP (0 si erreur reseau)
-    $e->response?->json('result.message'); // corps de la reponse Flouci
+    $e->getCode();                         // HTTP status, 0 on network errors
+    $e->response?->json('result.message'); // Flouci response body
 }
 ```
 
-## Developpement du package
+## Testing your app
 
-Le depot contient maintenant:
+Fake the Flouci API with Laravel's HTTP client:
 
-- `src/` pour le code publiable du package
-- `config/` pour la configuration publiee
-- `tests/` pour les tests package-first avec Pest + Testbench
-- `workbench/` pour les essais locaux (page sandbox)
+```php
+Http::fake([
+    'developers.flouci.com/api/v2/generate_payment' => Http::response([
+        'result' => ['success' => true, 'payment_id' => 'abc', 'link' => 'https://checkout.flouci.com/abc'],
+    ]),
+]);
+```
 
-Tester contre la vraie sandbox Flouci:
+Test cards for the Flouci sandbox are listed in the [Flouci docs](https://docs.flouci.com/essentials/testing).
+
+## Contributing
 
 ```bash
-cp workbench/.env.example workbench/.env   # renseigner les cles de la TEST APP
-cloudflared tunnel --url http://localhost:8000   # puis mettre l'URL https dans APP_URL
+composer test     # Pest
+composer lint     # Pint
+composer analyse  # Larastan
+```
+
+To try the package against the real Flouci sandbox:
+
+```bash
+cp workbench/.env.example workbench/.env        # add your TEST APP keys
+cloudflared tunnel --url http://localhost:8000  # then set the https URL as APP_URL
 vendor/bin/testbench serve --port=8000
 ```
 
-Ouvrir `<APP_URL>/flouci/sandbox` et payer avec une carte de test
-([docs](https://docs.flouci.com/essentials/testing)). Les appels webhook et les events sont logges dans
+Open `<APP_URL>/flouci/sandbox` and pay with a test card. Webhook calls and dispatched events are logged to
 `vendor/orchestra/testbench-core/laravel/storage/logs/laravel.log`.
 
-Lancer les tests:
+## Security
 
-```bash
-composer test
-```
+See [SECURITY.md](SECURITY.md).
 
-## References Flouci
+## License
 
-- Introduction: https://docs.flouci.com/introduction
-- Test environment: https://docs.flouci.com/essentials/testing
+MIT. See [LICENSE](LICENSE).
