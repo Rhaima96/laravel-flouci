@@ -198,3 +198,34 @@ it('wraps connection errors in a FlouciException', function () {
     expect(fn () => Flouci::verifyPayment('abc'))
         ->toThrow(FlouciException::class, 'cURL error 28: timed out');
 });
+
+it('sends configured webhook and session timeout, overridable per payload', function () {
+    config()->set('flouci.webhook', 'https://merchant.test/flouci/webhook');
+    config()->set('flouci.session_timeout', '600');
+    app()->forgetInstance(Flouci\Laravel\FlouciClient::class);
+
+    Http::fake(['*' => Http::response(['result' => ['link' => 'https://pay.flouci.com/x']])]);
+
+    Flouci::generatePayment(['amount' => 1000]);
+    Flouci::generatePayment(['amount' => 1000, 'webhook' => 'https://other.test/hook', 'session_timeout_secs' => 60]);
+
+    $sent = Http::recorded()->map(fn ($pair) => $pair[0]->data());
+
+    expect($sent[0]['webhook'])->toBe('https://merchant.test/flouci/webhook')
+        ->and($sent[0]['session_timeout_secs'])->toBe(600)
+        ->and($sent[1]['webhook'])->toBe('https://other.test/hook')
+        ->and($sent[1]['session_timeout_secs'])->toBe(60);
+});
+
+it('omits webhook and session timeout when not configured', function () {
+    config()->set('flouci.webhook', null);
+    config()->set('flouci.session_timeout', null);
+    app()->forgetInstance(Flouci\Laravel\FlouciClient::class);
+
+    Http::fake(['*' => Http::response(['result' => []])]);
+
+    Flouci::generatePayment(['amount' => 1000]);
+
+    Http::assertSent(fn (Request $request) => ! array_key_exists('webhook', $request->data())
+        && ! array_key_exists('session_timeout_secs', $request->data()));
+});

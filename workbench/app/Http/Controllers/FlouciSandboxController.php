@@ -33,10 +33,7 @@ class FlouciSandboxController
             'accept_card' => true,
         ]);
 
-        $paymentUrl = data_get($payment, 'result.link')
-            ?? data_get($payment, 'result.payment_url')
-            ?? data_get($payment, 'link')
-            ?? data_get($payment, 'payment_url');
+        $paymentUrl = data_get($payment, 'result.link');
 
         abort_unless(is_string($paymentUrl) && $paymentUrl !== '', 500, 'Flouci payment URL was not returned.');
 

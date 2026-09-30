@@ -20,6 +20,8 @@ class FlouciClient
         protected ?string $imageUrl = null,
         protected ?HttpFactory $http = null,
         protected int $timeout = 15,
+        protected ?string $webhook = null,
+        protected ?int $sessionTimeout = null,
     ) {
     }
 
@@ -30,6 +32,8 @@ class FlouciClient
             'fail_link' => $payload['fail_link'] ?? $this->failLink,
             'accept_card' => $payload['accept_card'] ?? $this->cardPayment,
             'image_url' => $payload['image_url'] ?? $this->imageUrl,
+            'webhook' => $payload['webhook'] ?? $this->webhook,
+            'session_timeout_secs' => $payload['session_timeout_secs'] ?? $this->sessionTimeout,
         ], fn ($value) => ! is_null($value)) + $payload);
 
         return $this->decodeResponse($response, 'payment generation');

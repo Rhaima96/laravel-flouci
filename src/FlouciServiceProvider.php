@@ -20,6 +20,8 @@ class FlouciServiceProvider extends ServiceProvider
                 cardPayment: config('flouci.card_payment'),
                 imageUrl: config('flouci.image_url'),
                 timeout: (int) config('flouci.timeout', 15),
+                webhook: config('flouci.webhook'),
+                sessionTimeout: config('flouci.session_timeout') ? (int) config('flouci.session_timeout') : null,
             );
         });
     }

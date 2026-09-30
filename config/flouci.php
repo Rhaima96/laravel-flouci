@@ -16,4 +16,8 @@ return [
     'image_url' => env('FLOUCI_IMAGE_URL'),
 
     'timeout' => env('FLOUCI_TIMEOUT', 15),
+
+    'webhook' => env('FLOUCI_WEBHOOK_URL'),
+
+    'session_timeout' => env('FLOUCI_SESSION_TIMEOUT'),
 ];

@@ -4,6 +4,14 @@ All notable changes to `rhaima/laravel-flouci` will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [1.2.0] - 2026-09-30
+
+### Added
+- `PaymentStatus` enum with `fromVerification()`, `isPaid()` and `isFinal()`
+- `webhook` config option (`FLOUCI_WEBHOOK_URL`) sent as default `webhook`
+- `session_timeout` config option (`FLOUCI_SESSION_TIMEOUT`) sent as `session_timeout_secs`
+- `@method` docblocks on the `Flouci` facade for IDE autocompletion
+
 ## [1.1.0] - 2026-09-30
 
 ### Removed

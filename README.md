@@ -44,6 +44,8 @@ FLOUCI_FAIL_LINK=${APP_URL}/payment/fail
 FLOUCI_CARD_PAYMENT=true
 FLOUCI_IMAGE_URL=
 FLOUCI_TIMEOUT=15
+FLOUCI_WEBHOOK_URL=
+FLOUCI_SESSION_TIMEOUT=
 ```
 
 ## Options de configuration
@@ -56,6 +58,8 @@ FLOUCI_TIMEOUT=15
 - `card_payment`: valeur par defaut envoyee comme `accept_card` lors de `generatePayment()`
 - `image_url`: URL d'image par defaut envoyee lors de `generatePayment()`
 - `timeout`: timeout HTTP en secondes (defaut: 15)
+- `webhook`: URL de webhook par defaut envoyee lors de `generatePayment()`
+- `session_timeout`: duree de la session de paiement en secondes, envoyee comme `session_timeout_secs` (defaut Flouci: 1200)
 
 ## Utilisation
 
@@ -67,8 +71,24 @@ $payment = Flouci::generatePayment([
     'developer_tracking_id' => 'order_1001',
 ]);
 
-$verification = Flouci::verifyPayment($payment['result']['payment_id']);
+return redirect()->away($payment['result']['link']);
 ```
+
+Verifier un paiement (page de retour ou webhook):
+
+```php
+use Flouci\Laravel\Enums\PaymentStatus;
+
+$verification = Flouci::verifyPayment($paymentId);
+$status = PaymentStatus::fromVerification($verification);
+
+if ($status?->isPaid()) {
+    // marquer la commande comme payee
+}
+```
+
+`PaymentStatus`: `Success`, `Pending`, `Expired`, `Failure`, `PreauthSuccess`, `SystemFailure`.
+`isFinal()` renvoie `false` pour `Pending` et `PreauthSuccess`.
 
 Pour forcer des valeurs sur un appel precis:
 
