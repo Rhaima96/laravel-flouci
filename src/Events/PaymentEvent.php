@@ -5,7 +5,7 @@ namespace Flouci\Laravel\Events;
 use Flouci\Laravel\Enums\PaymentStatus;
 use Illuminate\Foundation\Events\Dispatchable;
 
-abstract class PaymentEvent
+abstract class PaymentEvent implements FlouciPaymentEvent
 {
     use Dispatchable;
 

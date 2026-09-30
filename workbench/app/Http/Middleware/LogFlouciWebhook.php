@@ -10,7 +10,13 @@ class LogFlouciWebhook
 {
     public function handle(Request $request, Closure $next)
     {
+        if (! $request->is('flouci/webhook*')) {
+            return $next($request);
+        }
+
         Log::info('Flouci webhook raw request.', [
+            'method' => $request->method(),
+            'headers' => $request->headers->all(),
             'content_type' => $request->header('Content-Type'),
             'query' => $request->query(),
             'body' => $request->getContent(),

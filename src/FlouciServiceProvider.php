@@ -39,7 +39,8 @@ class FlouciServiceProvider extends ServiceProvider
 
         Router::macro('flouciWebhook', function (string $uri = 'flouci/webhook') {
             /** @var Router $this */
-            return $this->post($uri, WebhookController::class)
+            // Flouci calls the webhook with GET ?payment_id=...&success=...; POST is kept for manual replays.
+            return $this->match(['GET', 'POST'], $uri, WebhookController::class)
                 // Laravel 13 renamed the web CSRF middleware to PreventRequestForgery (ValidateCsrfToken now extends it).
                 ->withoutMiddleware([ValidateCsrfToken::class, PreventRequestForgery::class])
                 ->name('flouci.webhook');

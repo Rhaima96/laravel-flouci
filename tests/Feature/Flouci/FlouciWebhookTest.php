@@ -1,6 +1,6 @@
 <?php
 
-use Flouci\Laravel\Events\PaymentEvent;
+use Flouci\Laravel\Events\FlouciPaymentEvent;
 use Flouci\Laravel\Events\PaymentExpired;
 use Flouci\Laravel\Events\PaymentFailed;
 use Flouci\Laravel\Events\PaymentSucceeded;
@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 
 beforeEach(function () {
-    Event::fake();
+    Event::fake([PaymentSucceeded::class, PaymentFailed::class, PaymentExpired::class]);
 });
 
 function fakeVerification(string $status): void
@@ -38,6 +38,18 @@ it('verifies the payment and dispatches PaymentSucceeded', function () {
         && $event->amount() === 1250);
 });
 
+it('handles the GET query-string call Flouci actually sends', function () {
+    fakeVerification('FAILURE');
+
+    // Captured from a real sandbox webhook: GET, empty body, query string only.
+    $this->getJson(route('flouci.webhook', ['payment_id' => 'J4gq2kVuRLSt3lo-7oTmFQ', 'success' => 'False']))
+        ->assertOk()
+        ->assertJsonPath('status', 'FAILURE');
+
+    Http::assertSent(fn (HttpRequest $request) => str_ends_with($request->url(), '/v2/verify_payment/J4gq2kVuRLSt3lo-7oTmFQ'));
+    Event::assertDispatched(PaymentFailed::class);
+});
+
 it('maps failed and expired statuses to their events', function (string $status, string $event) {
     fakeVerification($status);
 
@@ -57,7 +69,7 @@ it('dispatches nothing for a pending payment', function () {
         ->assertOk()
         ->assertJsonPath('status', 'PENDING');
 
-    Event::assertNotDispatched(PaymentEvent::class);
+    Event::assertNothingDispatched();
 });
 
 it('dispatches only once when the same webhook is replayed', function () {
@@ -77,7 +89,7 @@ it('rejects a webhook without payment id', function () {
         ->assertJsonPath('received', false);
 
     Http::assertNothingSent();
-    Event::assertNotDispatched(PaymentEvent::class);
+    Event::assertNothingDispatched();
 });
 
 it('returns a server error when verification fails so the call can be retried', function () {
@@ -85,7 +97,7 @@ it('returns a server error when verification fails so the call can be retried', 
 
     $this->postJson(route('flouci.webhook'), ['payment_id' => 'pay_down'])->assertServerError();
 
-    Event::assertNotDispatched(PaymentEvent::class);
+    Event::assertNothingDispatched();
 });
 
 it('strips CSRF protection from the webhook route', function () {
@@ -100,4 +112,23 @@ it('strips CSRF protection from the webhook route', function () {
     $route = collect(Route::getRoutes()->getRoutes())->first(fn ($route) => $route->uri() === 'csrf-test/flouci/webhook');
 
     expect(app('router')->gatherRouteMiddleware($route))->toBe([StartSession::class]);
+});
+
+it('lets a single listener receive every payment event through the interface', function () {
+    Event::swap(new Illuminate\Events\Dispatcher(app()));
+    $received = [];
+    Event::listen(function (FlouciPaymentEvent $event) use (&$received) {
+        $received[] = $event::class;
+    });
+
+    $statuses = ['SUCCESS', 'FAILURE', 'EXPIRED'];
+    Http::fake(collect($statuses)->mapWithKeys(fn ($status) => [
+        "*/verify_payment/pay_{$status}" => Http::response(['result' => ['status' => $status]]),
+    ])->all());
+
+    foreach ($statuses as $status) {
+        $this->getJson(route('flouci.webhook', ['payment_id' => "pay_{$status}"]))->assertOk();
+    }
+
+    expect($received)->toBe([PaymentSucceeded::class, PaymentFailed::class, PaymentExpired::class]);
 });

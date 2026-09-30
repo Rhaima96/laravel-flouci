@@ -10,7 +10,6 @@
 /tests export-ignore
 /workbench export-ignore
 /vendor export-ignore
-/.env.example export-ignore
 /phpunit.xml export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore

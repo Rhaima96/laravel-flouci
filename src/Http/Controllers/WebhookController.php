@@ -15,9 +15,9 @@ class WebhookController
 {
     public function __invoke(Request $request, FlouciClient $flouci): JsonResponse
     {
-        // Flouci does not sign webhooks: the payload is only used to find the payment id,
-        // the status always comes from the verify API.
-        $paymentId = $request->input('payment_id') ?? $request->input('id') ?? $request->input('data.payment_id');
+        // Flouci calls GET ?payment_id=...&success=True|False and does not sign it:
+        // only the payment id is trusted, the status always comes from the verify API.
+        $paymentId = $request->input('payment_id');
 
         if ((! is_string($paymentId) && ! is_int($paymentId)) || $paymentId === '') {
             return response()->json(['received' => false, 'error' => 'Missing payment_id.'], 422);

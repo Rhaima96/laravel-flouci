@@ -2,7 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 use Workbench\App\Http\Controllers\FlouciSandboxController;
-use Workbench\App\Http\Middleware\LogFlouciWebhook;
 
 Route::prefix('flouci/sandbox')->name('flouci.sandbox.')->group(function () {
     Route::get('/', [FlouciSandboxController::class, 'index'])->name('index');
@@ -11,4 +10,4 @@ Route::prefix('flouci/sandbox')->name('flouci.sandbox.')->group(function () {
     Route::get('/fail', [FlouciSandboxController::class, 'fail'])->name('fail');
 });
 
-Route::flouciWebhook()->middleware(LogFlouciWebhook::class);
+Route::flouciWebhook();

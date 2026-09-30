@@ -4,6 +4,19 @@ All notable changes to `rhaima/laravel-flouci` will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [1.4.2] - 2026-09-30
+
+Found by testing against the real Flouci sandbox.
+
+### Fixed
+- Webhook route now accepts `GET`: Flouci calls `GET ?payment_id=...&success=...`, so the POST-only
+  route answered 405 and no event was ever dispatched
+- Listening to all payment events: added the `FlouciPaymentEvent` interface. Laravel resolves listeners
+  by interface, so a listener type-hinting the `PaymentEvent` parent class never fired
+
+### Changed
+- The webhook only reads `payment_id` (the `id` and `data.payment_id` fallbacks were guesses)
+
 ## [1.4.1] - 2026-09-30
 
 ### Fixed

@@ -133,15 +133,16 @@ passe-le dans la requete ou via `FLOUCI_MERCHANT_ID`.
 Enregistrer la route (dans `routes/web.php` ou `routes/api.php`, la protection CSRF est retiree automatiquement):
 
 ```php
-Route::flouciWebhook();                        // POST /flouci/webhook, nommee flouci.webhook
+Route::flouciWebhook();                        // GET|POST /flouci/webhook, nommee flouci.webhook
 Route::flouciWebhook('payments/flouci/hook');  // URI personnalisee
 Route::flouciWebhook()->middleware('throttle:60,1');
 ```
 
 Puis pointer `FLOUCI_WEBHOOK_URL` vers cette URL (ou passer `webhook` a `generatePayment()`).
 
-Flouci ne signe pas ses webhooks: le package ne fait confiance qu'au `payment_id` recu, et lit toujours
-le statut via `verifyPayment()`. Il declenche ensuite un event:
+Flouci appelle le webhook en `GET ?payment_id=...&success=True|False` (verifie en sandbox), sans signature:
+le package ne fait confiance qu'au `payment_id` recu, et lit toujours le statut via `verifyPayment()`.
+Flouci rappelle le webhook s'il n'obtient pas de reponse 2xx. Le package declenche ensuite un event:
 
 | Statut Flouci | Event |
 |---|---|
@@ -165,7 +166,8 @@ Event::listen(function (PaymentSucceeded $event) {
 ```
 
 Chaque event expose `paymentId`, `status` (`PaymentStatus`), `verification` (reponse brute), `trackingId()` et `amount()`.
-Toutes ces classes heritent de `PaymentEvent` pour ecouter tous les cas d'un coup.
+Pour ecouter tous les cas avec un seul listener, type-hint l'interface `FlouciPaymentEvent`
+(Laravel resout les listeners par interface, pas par classe parente).
 
 A savoir:
 - Un meme webhook rejoue ne declenche l'event qu'une fois (cle en cache pendant 24h). Utilise un store de cache
@@ -196,6 +198,18 @@ Le depot contient maintenant:
 - `config/` pour la configuration publiee
 - `tests/` pour les tests package-first avec Pest + Testbench
 - `workbench/` pour les essais locaux (page sandbox)
+
+Tester contre la vraie sandbox Flouci:
+
+```bash
+cp workbench/.env.example workbench/.env   # renseigner les cles de la TEST APP
+cloudflared tunnel --url http://localhost:8000   # puis mettre l'URL https dans APP_URL
+vendor/bin/testbench serve --port=8000
+```
+
+Ouvrir `<APP_URL>/flouci/sandbox` et payer avec une carte de test
+([docs](https://docs.flouci.com/essentials/testing)). Les appels webhook et les events sont logges dans
+`vendor/orchestra/testbench-core/laravel/storage/logs/laravel.log`.
 
 Lancer les tests:
 
