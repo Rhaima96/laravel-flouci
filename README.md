@@ -46,6 +46,7 @@ FLOUCI_IMAGE_URL=
 FLOUCI_TIMEOUT=15
 FLOUCI_WEBHOOK_URL=
 FLOUCI_SESSION_TIMEOUT=
+FLOUCI_MERCHANT_ID=
 ```
 
 ## Options de configuration
@@ -60,6 +61,7 @@ FLOUCI_SESSION_TIMEOUT=
 - `timeout`: timeout HTTP en secondes (defaut: 15)
 - `webhook`: URL de webhook par defaut envoyee lors de `generatePayment()`
 - `session_timeout`: duree de la session de paiement en secondes, envoyee comme `session_timeout_secs` (defaut Flouci: 1200)
+- `merchant_id`: identifiant marchand utilise par defaut par `transactionHistory()`
 
 ## Utilisation
 
@@ -102,6 +104,29 @@ $payment = Flouci::generatePayment([
 ```
 
 Le montant `amount` est exprime en **millimes** (`10000` = 10 TND).
+
+## Remboursement
+
+```php
+$refund = Flouci::refund($paymentId); // remboursement total
+```
+
+Flouci ne rembourse que les paiements termines et pas encore rembourses. Une erreur de remboursement leve
+toujours une `FlouciException`, meme si Flouci repond en HTTP 200 avec `"status": "error"`.
+
+## Historique des transactions
+
+```php
+$history = Flouci::transactionHistory([
+    'start_date' => '2026-09-01T00:00:00Z', // ISO-8601
+    'end_date' => '2026-09-30T23:59:59Z',
+    'type' => 'online',                     // ou pos
+]);
+```
+
+Les parametres sont transmis tels quels a `GET /api/developers/history`
+([doc](https://docs.flouci.com/api-reference/transaction-history)). `merchant_id` est requis:
+passe-le dans la requete ou via `FLOUCI_MERCHANT_ID`.
 
 ## Webhook
 

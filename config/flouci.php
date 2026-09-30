@@ -20,4 +20,6 @@ return [
     'webhook' => env('FLOUCI_WEBHOOK_URL'),
 
     'session_timeout' => env('FLOUCI_SESSION_TIMEOUT'),
+
+    'merchant_id' => env('FLOUCI_MERCHANT_ID'),
 ];

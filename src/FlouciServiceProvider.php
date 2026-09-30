@@ -25,6 +25,7 @@ class FlouciServiceProvider extends ServiceProvider
                 timeout: (int) config('flouci.timeout', 15),
                 webhook: config('flouci.webhook'),
                 sessionTimeout: config('flouci.session_timeout') ? (int) config('flouci.session_timeout') : null,
+                merchantId: config('flouci.merchant_id') ? (int) config('flouci.merchant_id') : null,
             );
         });
     }

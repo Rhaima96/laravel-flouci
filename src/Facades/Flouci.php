@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Facade;
 /**
  * @method static array generatePayment(array $payload)
  * @method static array verifyPayment(string|int $paymentId)
+ * @method static array refund(string $paymentId)
+ * @method static array transactionHistory(array $query = [])
  *
  * @see \Flouci\Laravel\FlouciClient
  */

@@ -4,6 +4,13 @@ All notable changes to `rhaima/laravel-flouci` will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [1.4.0] - 2026-09-30
+
+### Added
+- `refund()` for `POST /api/v2/refund_payment`; refund errors returned with HTTP 200 also throw `FlouciException`
+- `transactionHistory()` for `GET /api/developers/history`
+- `merchant_id` config option (`FLOUCI_MERCHANT_ID`) used by `transactionHistory()`
+
 ## [1.3.0] - 2026-09-30
 
 ### Added

@@ -22,6 +22,7 @@ class FlouciClient
         protected int $timeout = 15,
         protected ?string $webhook = null,
         protected ?int $sessionTimeout = null,
+        protected ?int $merchantId = null,
     ) {
     }
 
@@ -44,6 +45,32 @@ class FlouciClient
         $response = $this->request('v2/verify_payment/'.rawurlencode((string) $paymentId), method: 'get');
 
         return $this->decodeResponse($response, 'payment verification');
+    }
+
+    public function refund(string $paymentId): array
+    {
+        $response = $this->request('v2/refund_payment', ['payment_id' => $paymentId]);
+        $decoded = $this->decodeResponse($response, 'refund');
+
+        // Refund errors may come back as {"status": "error", ...}; never report them as refunded.
+        if (($decoded['status'] ?? null) === 'error') {
+            throw new FlouciException('Flouci refund failed: '.($decoded['message'] ?? 'unknown error'), $response);
+        }
+
+        return $decoded;
+    }
+
+    public function transactionHistory(array $query = []): array
+    {
+        $query += array_filter(['merchant_id' => $this->merchantId]);
+
+        if (! isset($query['merchant_id'])) {
+            throw new FlouciException('Flouci merchant id is missing. Set FLOUCI_MERCHANT_ID or pass merchant_id.');
+        }
+
+        $response = $this->request('developers/history', $query, method: 'get');
+
+        return $this->decodeResponse($response, 'transaction history');
     }
 
     protected function request(string $uri, array $payload = [], string $method = 'post'): Response
