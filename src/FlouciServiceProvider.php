@@ -19,6 +19,7 @@ class FlouciServiceProvider extends ServiceProvider
                 failLink: config('flouci.fail_link'),
                 cardPayment: config('flouci.card_payment'),
                 imageUrl: config('flouci.image_url'),
+                timeout: (int) config('flouci.timeout', 15),
             );
         });
     }

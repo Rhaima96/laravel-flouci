@@ -44,6 +44,7 @@ FLOUCI_SUCCESS_LINK=${APP_URL}/payment/success
 FLOUCI_FAIL_LINK=${APP_URL}/payment/fail
 FLOUCI_CARD_PAYMENT=true
 FLOUCI_IMAGE_URL=
+FLOUCI_TIMEOUT=15
 ```
 
 ## Options de configuration
@@ -55,6 +56,7 @@ FLOUCI_IMAGE_URL=
 - `fail_link`: URL de retour en cas d'echec
 - `card_payment`: valeur par defaut envoyee comme `accept_card` lors de `generatePayment()`
 - `image_url`: URL d'image par defaut envoyee lors de `generatePayment()`
+- `timeout`: timeout HTTP en secondes (defaut: 15)
 
 ## Utilisation
 
@@ -80,15 +82,31 @@ $payment = Flouci::generatePayment([
 ]);
 ```
 
+Le montant `amount` est exprime en **millimes** (`10000` = 10 TND).
+
+## Gestion des erreurs
+
+Toute erreur (reponse HTTP en echec, timeout, reponse illisible) leve une `FlouciException`:
+
+```php
+use Flouci\Laravel\Exceptions\FlouciException;
+
+try {
+    $payment = Flouci::generatePayment(['amount' => 10000]);
+} catch (FlouciException $e) {
+    $e->getCode();                         // statut HTTP (0 si erreur reseau)
+    $e->response?->json('result.message'); // corps de la reponse Flouci
+}
+```
+
 ## Developpement du package
 
 Le depot contient maintenant:
 
 - `src/` pour le code publiable du package
 - `config/` pour la configuration publiee
-- `routes/` pour les routes du package
 - `tests/` pour les tests package-first avec Pest + Testbench
-- `workbench/` pour les essais locaux si besoin
+- `workbench/` pour les essais locaux (routes sandbox et webhook d'exemple)
 
 Lancer les tests:
 

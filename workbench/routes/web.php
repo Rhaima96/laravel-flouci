@@ -5,8 +5,6 @@ use Illuminate\Support\Facades\Route;
 use Workbench\App\Http\Controllers\FlouciSandboxController;
 use Workbench\App\Http\Controllers\FlouciWebhookController;
 
-Route::get('/', fn () => 'Flouci Laravel Package');
-
 Route::prefix('flouci/sandbox')->name('flouci.sandbox.')->group(function () {
     Route::get('/', [FlouciSandboxController::class, 'index'])->name('index');
     Route::post('/checkout', [FlouciSandboxController::class, 'checkout'])->name('checkout');

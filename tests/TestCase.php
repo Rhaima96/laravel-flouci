@@ -34,7 +34,7 @@ abstract class TestCase extends Orchestra
 
     protected function defineRoutes($router): void
     {
-        require __DIR__.'/../routes/web.php';
+        require __DIR__.'/../workbench/routes/web.php';
     }
 }
 

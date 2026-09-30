@@ -170,3 +170,31 @@ it('fails fast when credentials are missing', function () {
     expect(fn () => Flouci::generatePayment(['amount' => 1000]))
         ->toThrow(FlouciException::class, 'Flouci credentials are missing');
 });
+
+it('url-encodes the payment id when verifying', function () {
+    Http::fake(['*' => Http::response(['result' => ['status' => 'SUCCESS']])]);
+
+    Flouci::verifyPayment('../transaction_history?x=1#');
+
+    Http::assertSent(fn (Request $request) => $request->url()
+        === 'https://developers.flouci.com/api/v2/verify_payment/..%2Ftransaction_history%3Fx%3D1%23');
+});
+
+it('exposes the http response on failed requests', function () {
+    Http::fake(['*' => Http::response(['result' => ['status' => 400, 'message' => 'Bad Request']], 400)]);
+
+    try {
+        Flouci::generatePayment(['amount' => 1000]);
+        $this->fail('Expected FlouciException.');
+    } catch (FlouciException $exception) {
+        expect($exception->getCode())->toBe(400)
+            ->and($exception->response->json('result.message'))->toBe('Bad Request');
+    }
+});
+
+it('wraps connection errors in a FlouciException', function () {
+    Http::fake(fn () => throw new Illuminate\Http\Client\ConnectionException('cURL error 28: timed out'));
+
+    expect(fn () => Flouci::verifyPayment('abc'))
+        ->toThrow(FlouciException::class, 'cURL error 28: timed out');
+});

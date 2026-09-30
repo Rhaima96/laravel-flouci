@@ -3,6 +3,7 @@
 namespace Flouci\Laravel;
 
 use Flouci\Laravel\Exceptions\FlouciException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -18,6 +19,7 @@ class FlouciClient
         protected ?bool $cardPayment = null,
         protected ?string $imageUrl = null,
         protected ?HttpFactory $http = null,
+        protected int $timeout = 15,
     ) {
     }
 
@@ -35,7 +37,7 @@ class FlouciClient
 
     public function verifyPayment(string|int $paymentId): array
     {
-        $response = $this->request('v2/verify_payment/'.$paymentId, method: 'get');
+        $response = $this->request('v2/verify_payment/'.rawurlencode((string) $paymentId), method: 'get');
 
         return $this->decodeResponse($response, 'payment verification');
     }
@@ -48,12 +50,17 @@ class FlouciClient
             ->baseUrl(rtrim($this->baseUrl, '/'))
             ->acceptJson()
             ->asJson()
+            ->timeout($this->timeout)
             ->withToken($this->publicKey.':'.$this->privateKey);
 
-        $response = $client->{$method}(ltrim($uri, '/'), $payload);
+        try {
+            $response = $client->{$method}(ltrim($uri, '/'), $payload);
+        } catch (ConnectionException $exception) {
+            throw new FlouciException('Flouci request failed: '.$exception->getMessage(), previous: $exception);
+        }
 
         if ($response->failed()) {
-            throw new FlouciException('Flouci request failed: '.$response->status().' '.$response->body());
+            throw new FlouciException('Flouci request failed: '.$response->status().' '.$response->body(), $response);
         }
 
         return $response;
@@ -64,7 +71,7 @@ class FlouciClient
         $decoded = $response->json();
 
         if (! is_array($decoded)) {
-            throw new FlouciException("Unable to decode Flouci {$action} response.");
+            throw new FlouciException("Unable to decode Flouci {$action} response.", $response);
         }
 
         return $decoded;

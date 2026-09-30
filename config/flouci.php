@@ -14,4 +14,6 @@ return [
     'card_payment' => env('FLOUCI_CARD_PAYMENT', true),
 
     'image_url' => env('FLOUCI_IMAGE_URL'),
+
+    'timeout' => env('FLOUCI_TIMEOUT', 15),
 ];
